@@ -1,8 +1,9 @@
-import React from "react";
-import Layout from "./components/Layout";
+import React, { useEffect } from "react";
 import "./App.css";
+import Layout from "./components/Layout";
 import LoginPage from "./pages/LoginPage";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { auth } from "./services/firebase";
 
 // Create a component that shows different content based on auth state
 const AppContent = () => {
@@ -52,6 +53,19 @@ const AppContent = () => {
 };
 
 function App() {
+  useEffect(() => {
+    console.log("Firebase Auth initialized:", !!auth);
+    // Check if environment variables are loaded (without displaying values)
+    console.log(
+      "Firebase API Key exists:",
+      !!process.env.REACT_APP_FIREBASE_API_KEY
+    );
+    console.log(
+      "Firebase Project ID exists:",
+      !!process.env.REACT_APP_FIREBASE_PROJECT_ID
+    );
+  }, []);
+
   return (
     <AuthProvider>
       <AppContent />
