@@ -37,35 +37,42 @@ const LoginPage: React.FC = () => {
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="text-center text-3xl font-extrabold">
-          Sign in to your account
+        <h2 className="text-center text-4xl font-extrabold tracking-tight bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent mb-2">
+          Invoice Auto-Sender
         </h2>
         <p className="mt-2 text-center text-sm text-muted-foreground">
-          Use your Google account to access Invoice Auto-Sender
+          Sign in to manage your invoices efficiently
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-center text-xl">Welcome</CardTitle>
+        <Card className="shadow-lg border-opacity-50 overflow-hidden">
+          <div className="h-2 bg-gradient-to-r from-primary to-primary/40"></div>
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-xl font-bold text-center">
+              Welcome back
+            </CardTitle>
             <CardDescription className="text-center">
-              Sign in to manage your invoices
+              Sign in to your account to continue
             </CardDescription>
           </CardHeader>
           <CardContent>
             <AuthStatus />
 
             <div className="mt-6">
-              <div className="flex flex-col items-center">
-                <div className="w-full">
-                  <p className="text-sm font-medium mb-4 text-center">
-                    Sign in with Google to continue
-                  </p>
-                  <div className="flex justify-center">
-                    <FirebaseLogin className="w-full" />
-                  </div>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
                 </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Continue with
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <FirebaseLogin className="w-full" />
               </div>
             </div>
           </CardContent>
