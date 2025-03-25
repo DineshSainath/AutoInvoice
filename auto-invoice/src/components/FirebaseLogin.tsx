@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { Button } from "./ui/button";
 
 interface FirebaseLoginProps {
   className?: string;
@@ -26,11 +27,12 @@ const FirebaseLogin: React.FC<FirebaseLoginProps> = ({ className }) => {
   };
 
   return (
-    <div className="w-full">
-      <button
+    <div className={`w-full ${className}`}>
+      <Button
         onClick={handleLogin}
         disabled={isLoading}
-        className={`flex items-center justify-center w-full px-4 py-2 space-x-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 ${className}`}
+        className="w-full flex items-center space-x-2"
+        size="lg"
       >
         {isLoading ? (
           <svg
@@ -64,10 +66,10 @@ const FirebaseLogin: React.FC<FirebaseLoginProps> = ({ className }) => {
           </svg>
         )}
         <span>{isLoading ? "Signing in..." : "Sign in with Google"}</span>
-      </button>
+      </Button>
 
       {error && (
-        <div className="mt-2 p-2 text-sm text-red-600 bg-red-50 rounded-md border border-red-200">
+        <div className="mt-2 p-2 text-sm text-destructive bg-destructive/10 rounded-md border border-destructive/30">
           {error}
         </div>
       )}

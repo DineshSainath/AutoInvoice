@@ -1,5 +1,7 @@
 import React from "react";
 import { useAuth } from "../context/AuthContext";
+import { Button } from "./ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 interface UserProfileProps {
   className?: string;
@@ -13,32 +15,30 @@ const UserProfile: React.FC<UserProfileProps> = ({ className }) => {
   }
 
   return (
-    <div className={`flex items-center ${className}`}>
+    <div className={`flex items-center space-x-4 ${className}`}>
       <div className="flex items-center">
-        {user.photoURL ? (
-          <img
-            className="h-8 w-8 rounded-full"
-            src={user.photoURL}
-            alt={user.name}
-          />
-        ) : (
-          <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
-            <span className="text-xs font-medium text-indigo-800">
-              {user.name.charAt(0)}
-            </span>
-          </div>
-        )}
+        <Avatar>
+          {user.photoURL ? (
+            <AvatarImage src={user.photoURL} alt={user.name} />
+          ) : (
+            <AvatarFallback className="bg-primary text-primary-foreground">
+              {user.name.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          )}
+        </Avatar>
         <div className="ml-3">
-          <p className="text-sm font-medium text-gray-700">{user.name}</p>
-          <p className="text-xs font-medium text-gray-500">{user.email}</p>
+          <p className="text-sm font-medium">{user.name}</p>
+          <p className="text-xs text-muted-foreground">{user.email}</p>
         </div>
       </div>
-      <button
+      <Button
         onClick={logout}
-        className="ml-4 px-3 py-1 text-xs font-medium text-red-700 hover:text-red-900"
+        variant="outline"
+        size="sm"
+        className="text-destructive hover:text-destructive-foreground hover:bg-destructive/10"
       >
         Sign out
-      </button>
+      </Button>
     </div>
   );
 };
