@@ -1,9 +1,11 @@
 import mammoth from "mammoth";
+import { InvoiceData } from "../components/InvoiceEditor/InvoiceEditor";
 
 export interface DocumentData {
   content: string;
   preview: string;
   fileName?: string;
+  invoiceData?: InvoiceData;
 }
 
 /**
@@ -46,9 +48,13 @@ export async function parseDocxFile(file: File): Promise<DocumentData> {
       throw new Error("Failed to convert document to HTML");
     }
 
+    // Extract initial invoice data
+    const invoiceData = extractInvoiceData(content);
+
     return {
       content,
       preview: result.value,
+      invoiceData,
     };
   } catch (error) {
     console.error("Error processing document:", error);
@@ -69,22 +75,130 @@ export function extractTextFromHtml(html: string): string {
 
 /**
  * Extract invoice data from document content
- * This is a placeholder for more advanced parsing logic
+ * This function looks for placeholder patterns in the document
  */
-export function extractInvoiceData(content: string): {
-  date?: string;
-  amount?: string;
-} {
-  // Basic regex patterns for date and amount extraction
-  // These patterns can be improved for production use
-  const datePattern = /(\d{1,2}\/\d{1,2}\/\d{2,4}|\d{1,2}-\d{1,2}-\d{2,4})/;
-  const amountPattern = /\$(\d+(\.\d{2})?)/;
+export function extractInvoiceData(content: string): InvoiceData {
+  // We'll use today's date as a default if no placeholder is found
+  const today = new Date();
+  const formattedToday = `${today.getFullYear()}-${String(
+    today.getMonth() + 1
+  ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-  const dateMatch = content.match(datePattern);
-  const amountMatch = content.match(amountPattern);
+  // Check if the document contains our placeholders
+  const hasDatePlaceholder = content.includes("{{INVOICE_DATE}}");
+  const hasInvoiceNoPlaceholder = content.includes("{{INVOICE_NUMBER}}");
+
+  // For an actual date value, we'd try to extract it
+  // If no placeholder is found, fall back to regex pattern
+  const datePattern = /(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})/;
+  const invoiceNoPattern = /(?:Invoice|INV)[-\s]?#?\s*([A-Z0-9-]+)/i;
+
+  const dateMatch = !hasDatePlaceholder ? content.match(datePattern) : null;
+  const invoiceNoMatch = !hasInvoiceNoPlaceholder
+    ? content.match(invoiceNoPattern)
+    : null;
 
   return {
-    date: dateMatch ? dateMatch[0] : undefined,
-    amount: amountMatch ? amountMatch[1] : undefined,
+    // Use the placeholder if found, otherwise try to extract from content or use default
+    date: hasDatePlaceholder
+      ? formattedToday
+      : dateMatch
+      ? formatDate(dateMatch[1])
+      : formattedToday,
+    invoiceNo: hasInvoiceNoPlaceholder
+      ? "INV-" + Date.now().toString().slice(-6)
+      : invoiceNoMatch
+      ? invoiceNoMatch[1]
+      : "",
   };
+}
+
+function formatDate(dateStr: string): string {
+  // Convert date to YYYY-MM-DD format for input type="date"
+  const parts = dateStr.split(/[-/]/);
+  if (parts.length !== 3) return "";
+
+  let [day, month, year] = parts;
+
+  // Handle 2-digit year
+  if (year.length === 2) {
+    const currentYear = new Date().getFullYear();
+    const century = Math.floor(currentYear / 100) * 100;
+    year = `${century + parseInt(year)}`;
+  }
+
+  // Ensure month and day are 2 digits
+  month = month.padStart(2, "0");
+  day = day.padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+export function updateInvoiceContent(
+  content: string,
+  updates: InvoiceData
+): string {
+  let updatedContent = content;
+
+  // Replace date placeholder
+  if (updates.date) {
+    const formattedDate = formatDisplayDate(updates.date);
+    updatedContent = updatedContent.replace(/{{INVOICE_DATE}}/g, formattedDate);
+  }
+
+  // Replace invoice number placeholder
+  if (updates.invoiceNo) {
+    updatedContent = updatedContent.replace(
+      /{{INVOICE_NUMBER}}/g,
+      updates.invoiceNo
+    );
+  }
+
+  return updatedContent;
+}
+
+function formatDisplayDate(isoDate: string): string {
+  // Convert YYYY-MM-DD to DD/MM/YYYY
+  const [year, month, day] = isoDate.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+/**
+ * Convert document to PDF format
+ * For MVP, we create a simple PDF from the HTML content
+ * In a production app, you would use a more sophisticated library or service
+ */
+export function convertToPdf(documentData: DocumentData): Blob {
+  // For the MVP, we'll create a very basic PDF using the HTML content
+  // This is a simplified approach that creates a printable HTML page
+  const { preview, fileName } = documentData;
+
+  // Create a styled HTML document
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>${fileName || "Invoice"}</title>
+      <style>
+        body { 
+          font-family: Arial, sans-serif;
+          margin: 20mm;
+          font-size: 12pt;
+        }
+        @media print {
+          body { 
+            width: 210mm;
+            height: 297mm;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      ${preview}
+    </body>
+    </html>
+  `;
+
+  // Return as a Blob that can be downloaded
+  return new Blob([htmlContent], { type: "text/html" });
 }

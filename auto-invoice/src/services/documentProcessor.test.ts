@@ -1,4 +1,8 @@
-import { parseDocxFile } from "./documentProcessor";
+import {
+  parseDocxFile,
+  extractInvoiceData,
+  updateInvoiceContent,
+} from "./documentProcessor";
 
 // Mock the mammoth library
 jest.mock("mammoth", () => ({
@@ -47,7 +51,7 @@ class MockFileReader implements Partial<FileReader> {
   readAsText(file: Blob) {
     this.readyState = this.LOADING;
     setTimeout(() => {
-      this.result = "test content";
+      this.result = "test content\nInvoice #INV-001\nDate: 20/02/2024";
       this.readyState = this.DONE;
       if (this.onload) {
         const event = {
@@ -104,50 +108,115 @@ describe("Document Processor Service", () => {
     jest.clearAllMocks();
   });
 
-  test("parseDocxFile should convert docx file to html", async () => {
-    // Create a mock file
-    const mockFile = new File(["test content"], "test.docx", {
-      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  describe("parseDocxFile", () => {
+    test("should convert docx file to html and extract invoice data", async () => {
+      const mockFile = new File(["test content"], "test.docx", {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      });
+
+      mockFile.arrayBuffer = jest.fn().mockResolvedValue(new ArrayBuffer(0));
+      mockFile.text = jest
+        .fn()
+        .mockResolvedValue("test content\nInvoice #INV-001\nDate: 20/02/2024");
+
+      const result = await parseDocxFile(mockFile);
+
+      expect(result).toEqual({
+        content: "test content\nInvoice #INV-001\nDate: 20/02/2024",
+        preview: "<p>Converted HTML</p>",
+        invoiceData: {
+          date: "2024-02-20",
+          invoiceNo: "INV-001",
+        },
+      });
     });
 
-    // Mock arrayBuffer method
-    mockFile.arrayBuffer = jest.fn().mockResolvedValue(new ArrayBuffer(0));
-    mockFile.text = jest.fn().mockResolvedValue("test content");
+    test("should throw an error if not a docx file", async () => {
+      const mockFile = new File(["test content"], "test.pdf", {
+        type: "application/pdf",
+      });
 
-    const result = await parseDocxFile(mockFile);
+      await expect(parseDocxFile(mockFile)).rejects.toThrow(
+        "Only DOCX files are supported"
+      );
+    });
 
-    expect(result).toEqual({
-      content: "test content",
-      preview: "<p>Converted HTML</p>",
+    test("should handle conversion errors", async () => {
+      const mammoth = require("mammoth");
+      mammoth.convertToHtml.mockRejectedValueOnce(
+        new Error("Conversion error")
+      );
+
+      const mockFile = new File(["test content"], "test.docx", {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      });
+
+      mockFile.arrayBuffer = jest.fn().mockResolvedValue(new ArrayBuffer(0));
+      mockFile.text = jest.fn().mockResolvedValue("test content");
+
+      await expect(parseDocxFile(mockFile)).rejects.toThrow(
+        "Error processing document: Conversion error"
+      );
     });
   });
 
-  test("parseDocxFile should throw an error if not a docx file", async () => {
-    // Create a mock file with wrong type
-    const mockFile = new File(["test content"], "test.pdf", {
-      type: "application/pdf",
+  describe("extractInvoiceData", () => {
+    test("should extract date and invoice number from content", () => {
+      const content = "Invoice #INV-001\nDate: 20/02/2024";
+      const result = extractInvoiceData(content);
+
+      expect(result).toEqual({
+        date: "2024-02-20",
+        invoiceNo: "INV-001",
+      });
     });
 
-    await expect(parseDocxFile(mockFile)).rejects.toThrow(
-      "Only DOCX files are supported"
-    );
+    test("should handle different date formats", () => {
+      const content = "Invoice #INV-001\nDate: 20-02-24";
+      const result = extractInvoiceData(content);
+
+      expect(result).toEqual({
+        date: "2024-02-20",
+        invoiceNo: "INV-001",
+      });
+    });
+
+    test("should return empty strings when no data found", () => {
+      const content = "Some random content";
+      const result = extractInvoiceData(content);
+
+      expect(result).toEqual({
+        date: "",
+        invoiceNo: "",
+      });
+    });
   });
 
-  test("parseDocxFile should handle conversion errors", async () => {
-    // Mock implementation to simulate error
-    const mammoth = require("mammoth");
-    mammoth.convertToHtml.mockRejectedValueOnce(new Error("Conversion error"));
+  describe("updateInvoiceContent", () => {
+    test("should update date and invoice number in content", () => {
+      const content = "Invoice #INV-001\nDate: 20/02/2024";
+      const updates = {
+        date: "2024-03-21",
+        invoiceNo: "INV-002",
+      };
 
-    const mockFile = new File(["test content"], "test.docx", {
-      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      const result = updateInvoiceContent(content, updates);
+
+      expect(result).toContain("Invoice #INV-002");
+      expect(result).toContain("21/03/2024");
     });
 
-    // Mock arrayBuffer method
-    mockFile.arrayBuffer = jest.fn().mockResolvedValue(new ArrayBuffer(0));
-    mockFile.text = jest.fn().mockResolvedValue("test content");
+    test("should handle partial updates", () => {
+      const content = "Invoice #INV-001\nDate: 20/02/2024";
+      const updates = {
+        date: "2024-03-21",
+        invoiceNo: "",
+      };
 
-    await expect(parseDocxFile(mockFile)).rejects.toThrow(
-      "Error processing document: Conversion error"
-    );
+      const result = updateInvoiceContent(content, updates);
+
+      expect(result).toContain("Invoice #INV-001");
+      expect(result).toContain("21/03/2024");
+    });
   });
 });
