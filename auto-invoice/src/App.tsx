@@ -1,7 +1,8 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import "./App.css";
 import Layout from "./components/Layout";
 import LoginPage from "./pages/LoginPage";
+import DocumentUploadPage from "./pages/DocumentUploadPage";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { auth } from "./services/firebase";
 import {
@@ -13,11 +14,14 @@ import {
   CardTitle,
 } from "./components/ui/card";
 import { Button } from "./components/ui/button";
-import { FileText, PlusCircle, ArrowRight } from "lucide-react";
+import { FileText, PlusCircle, ArrowRight, Upload } from "lucide-react";
 
 // Create a component that shows different content based on auth state
 const AppContent = () => {
   const { isAuthenticated, isLoading } = useAuth();
+  const [currentPage, setCurrentPage] = useState<
+    "dashboard" | "document-upload"
+  >("dashboard");
 
   if (isLoading) {
     return (
@@ -29,6 +33,28 @@ const AppContent = () => {
 
   if (!isAuthenticated) {
     return <LoginPage />;
+  }
+
+  const navigateTo = (page: "dashboard" | "document-upload") => {
+    setCurrentPage(page);
+  };
+
+  if (currentPage === "document-upload") {
+    return (
+      <Layout>
+        <div className="container mx-auto pt-4 pb-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigateTo("dashboard")}
+            className="mb-4"
+          >
+            <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
+            Back to Dashboard
+          </Button>
+          <DocumentUploadPage />
+        </div>
+      </Layout>
+    );
   }
 
   return (
@@ -78,28 +104,31 @@ const AppContent = () => {
             </CardFooter>
           </Card>
 
-          {/* Create Invoice panel with animation */}
+          {/* Upload Document panel */}
           <Card className="shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden h-full bg-primary/5 group hover:bg-primary/10">
             <div className="h-1.5 bg-gradient-to-r from-primary to-primary/40"></div>
             <CardHeader className="pb-2 space-y-2">
               <CardTitle className="text-xl font-bold flex items-center gap-2">
-                <PlusCircle className="h-5 w-5 text-primary" />
-                Create Invoice
+                <Upload className="h-5 w-5 text-primary" />
+                Upload Document
               </CardTitle>
-              <CardDescription>Get started with a new invoice</CardDescription>
+              <CardDescription>
+                Upload and manage your invoice templates
+              </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center justify-center p-8">
               <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-all duration-300 group-hover:bg-primary/20">
-                <PlusCircle className="h-12 w-12 text-primary group-hover:rotate-90 transition-all duration-300" />
+                <Upload className="h-12 w-12 text-primary group-hover:translate-y-[-8px] transition-all duration-300" />
               </div>
               <p className="text-center text-muted-foreground mb-8 max-w-xs mx-auto">
-                Create a professional invoice in seconds
+                Upload DOCX invoice templates to edit and send
               </p>
               <Button
                 size="lg"
                 className="w-full py-6 text-base font-medium group-hover:bg-primary/90 group-hover:scale-105 transition-all duration-300"
+                onClick={() => navigateTo("document-upload")}
               >
-                Create New Invoice
+                Upload Document
               </Button>
             </CardContent>
           </Card>
