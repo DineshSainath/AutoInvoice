@@ -9,7 +9,6 @@ import {
   User as FirebaseUser,
   signInWithPopup,
   signOut,
-  GoogleAuthProvider,
   AuthError,
 } from "firebase/auth";
 import { auth, googleProvider } from "../services/firebase";

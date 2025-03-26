@@ -1,6 +1,5 @@
 import React from "react";
 import { useAuth } from "../context/AuthContext";
-import { cn } from "../lib/utils";
 
 const AuthStatus: React.FC = () => {
   const { user, isAuthenticated, isLoading, authError } = useAuth();
